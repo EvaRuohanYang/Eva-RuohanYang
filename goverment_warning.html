@@ -3,13 +3,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Government warning</title>
+  <title>安全演示</title>
   <style>
-    :root {
-      color-scheme: dark;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    }
-
+    :root { color-scheme: dark; font-family: ui-monospace, Menlo, Consolas, monospace; }
     * { box-sizing: border-box; }
 
     body {
@@ -24,10 +20,9 @@
       position: fixed;
       inset: 0;
       pointer-events: none;
-      opacity: 0.12;
-      background-image: repeating-linear-gradient(0deg, transparent 0 2px, #73ff91 3px 4px);
-      mix-blend-mode: screen;
-      animation: jitter 0.16s steps(2) infinite;
+      opacity: .12;
+      background: repeating-linear-gradient(0deg, transparent 0 2px, #73ff91 3px 4px);
+      animation: jitter .16s steps(2) infinite;
     }
 
     main {
@@ -38,8 +33,8 @@
 
     .label {
       display: inline-block;
-      border: 1px solid #ffcc45;
       padding: 6px 9px;
+      border: 1px solid #ffcc45;
       color: #ffcc45;
       font-size: 11px;
       letter-spacing: 1px;
@@ -49,8 +44,7 @@
       margin: 30px 0 8px;
       color: #ff4b4b;
       font-size: clamp(30px, 8vw, 58px);
-      line-height: 0.95;
-      letter-spacing: 0;
+      line-height: .95;
       text-shadow: 3px 0 #8c1111, -2px 0 #1dd65d;
       animation: flicker 1.8s infinite;
     }
@@ -83,12 +77,10 @@
       line-height: 1.72;
     }
 
-    .actions { margin-top: 24px; display: flex; gap: 12px; flex-wrap: wrap; }
-
     button {
-      border: 1px solid #62e77c;
-      border-radius: 0;
+      margin: 24px 8px 0 0;
       padding: 11px 15px;
+      border: 1px solid #62e77c;
       background: #0b2110;
       color: #d9ffe1;
       font: inherit;
@@ -96,18 +88,11 @@
     }
 
     button:hover { background: #154c20; }
-    .quiet { border-color: #4f6f55; color: #a9c9b0; }
-
-    .disclaimer {
-      margin-top: 28px;
-      color: #709276;
-      font-size: 12px;
-    }
 
     @keyframes flicker {
       0%, 92%, 100% { opacity: 1; transform: translate(0); }
-      93% { opacity: 0.55; transform: translate(2px, -1px); }
-      95% { opacity: 0.9; transform: translate(-1px, 1px); }
+      93% { opacity: .55; transform: translate(2px, -1px); }
+      95% { opacity: .9; transform: translate(-1px, 1px); }
     }
 
     @keyframes jitter { 50% { transform: translateY(1px); } }
@@ -115,48 +100,49 @@
 </head>
 <body>
   <div class="noise"></div>
+
   <main>
     <span class="label">DEMO MODE · HARMLESS SIMULATION</span>
     <h1>异常活动<br>已被侦测</h1>
+    <p>正在模拟设备安全日志。此页面不会访问文件、相机、位置或系统权限。</p>
 
-    <section class="terminal" aria-label="安全日志">
-      <div class="bar"><span>LOCAL SECURITY CONSOLE</span><span id="clock"></span></div>
+    <section class="terminal">
+      <div class="bar">
+        <span>LOCAL SECURITY CONSOLE</span>
+        <span id="clock"></span>
+      </div>
       <pre id="log"></pre>
     </section>
 
-    <div class="actions">
-    </div>
+    <button onclick="run()">重新运行模拟</button>
+    <button onclick="alert('真相：这是纯 HTML 视觉演示，没有真实病毒。')">显示真相</button>
   </main>
 
   <script>
     const lines = [
-      '[INIT] 正在读取数据...',
-      '[INIT] 用户信息：林珊珊',
-      '[INIT] 年龄：39',
-      '[WARN] 检测到用户正在境外',
-      '[SCAN] 监测中...',
-      '[TRACE] 中国公安局植入',
-      '[ALERT] 检测到用户使用过 VPN',
-      '[DONE]  '
+      "[INIT] 读取本地防护规则 ...",
+      "[WARN] 检测到 3 个可疑信号",
+      "[SCAN] 正在隔离未知进程 ...",
+      "[TRACE] 网络活动已标记为模拟数据",
+      "[ALERT] 系统完整性: 演示模式",
     ];
-    const log = document.querySelector('#log');
-    const truth = document.querySelector('#truth');
 
     function run() {
-      log.textContent = '';
-      lines.forEach((line, index) => {
-        setTimeout(() => { log.textContent += `${line}\n`; }, index * 520);
+      const log = document.querySelector("#log");
+      log.textContent = "";
+
+      lines.forEach((line, i) => {
+        setTimeout(() => {
+          log.textContent += line + "\n";
+        }, i * 520);
       });
     }
 
-    function updateClock() {
-      document.querySelector('#clock').textContent = new Date().toLocaleTimeString('zh-CN', { hour12: false });
-    }
+    setInterval(() => {
+      document.querySelector("#clock").textContent =
+        new Date().toLocaleTimeString("zh-CN", { hour12: false });
+    }, 1000);
 
-    document.querySelector('#restart').addEventListener('click', run);
-    document.querySelector('#reveal').addEventListener('click', () => 
-    updateClock());
-    setInterval(updateClock, 1000);
     run();
   </script>
 </body>
