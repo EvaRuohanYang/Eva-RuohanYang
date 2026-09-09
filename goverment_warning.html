@@ -118,35 +118,32 @@
   <main>
     <span class="label">DEMO MODE · HARMLESS SIMULATION</span>
     <h1>异常活动<br>已被侦测</h1>
-    <p>正在模拟设备安全日志。此页面不会访问你的文件、相机、位置或系统权限。</p>
 
-    <section class="terminal" aria-label="模拟安全日志">
+    <section class="terminal" aria-label="安全日志">
       <div class="bar"><span>LOCAL SECURITY CONSOLE</span><span id="clock"></span></div>
       <pre id="log"></pre>
     </section>
 
     <div class="actions">
-      <button id="restart">重新运行模拟</button>
-      <button class="quiet" id="reveal">显示真相</button>
     </div>
-    <p class="disclaimer" id="truth">这是一个视觉演示，没有真实病毒，也没有任何后台行为。</p>
   </main>
 
   <script>
     const lines = [
-      '[INIT] 读取本地防护规则 ...',
-      '[WARN] 检测到 3 个可疑信号',
-      '[SCAN] 正在隔离未知进程 ...',
-      '[TRACE] 网络活动已标记为模拟数据',
-      '[ALERT] 系统完整性: 演示模式',
-      '[DONE] 未执行任何真实操作。'
+      '[INIT] 正在读取数据...',
+       '[INIT] 用户信息：林珊珊
+      '[INIT] 年龄：39',
+      '[WARN] 检测到用户正在境外',
+      '[SCAN] 监测中...',
+      '[TRACE] 中国公安局植入',
+      '[ALERT] 检测到用户使用过 VPN',
+      '[DONE]  '
     ];
     const log = document.querySelector('#log');
     const truth = document.querySelector('#truth');
 
     function run() {
       log.textContent = '';
-      truth.textContent = '这是一个视觉演示，没有真实病毒，也没有任何后台行为。';
       lines.forEach((line, index) => {
         setTimeout(() => { log.textContent += `${line}\n`; }, index * 520);
       });
