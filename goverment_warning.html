@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Government warning</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      overflow: hidden;
+      background: #050706;
+      color: #d9ffe1;
+    }
+
+    .noise {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.12;
+      background-image: repeating-linear-gradient(0deg, transparent 0 2px, #73ff91 3px 4px);
+      mix-blend-mode: screen;
+      animation: jitter 0.16s steps(2) infinite;
+    }
+
+    main {
+      width: min(720px, calc(100% - 36px));
+      margin: 0 auto;
+      padding-top: 10vh;
+    }
+
+    .label {
+      display: inline-block;
+      border: 1px solid #ffcc45;
+      padding: 6px 9px;
+      color: #ffcc45;
+      font-size: 11px;
+      letter-spacing: 1px;
+    }
+
+    h1 {
+      margin: 30px 0 8px;
+      color: #ff4b4b;
+      font-size: clamp(30px, 8vw, 58px);
+      line-height: 0.95;
+      letter-spacing: 0;
+      text-shadow: 3px 0 #8c1111, -2px 0 #1dd65d;
+      animation: flicker 1.8s infinite;
+    }
+
+    p { color: #a9c9b0; line-height: 1.6; }
+
+    .terminal {
+      margin-top: 28px;
+      border: 1px solid #2b6237;
+      background: #08100a;
+      box-shadow: 0 0 38px #0b6c202e;
+    }
+
+    .bar {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 12px;
+      border-bottom: 1px solid #2b6237;
+      color: #7bc888;
+      font-size: 12px;
+    }
+
+    #log {
+      min-height: 230px;
+      margin: 0;
+      padding: 16px;
+      white-space: pre-wrap;
+      color: #7dff98;
+      font-size: 13px;
+      line-height: 1.72;
+    }
+
+    .actions { margin-top: 24px; display: flex; gap: 12px; flex-wrap: wrap; }
+
+    button {
+      border: 1px solid #62e77c;
+      border-radius: 0;
+      padding: 11px 15px;
+      background: #0b2110;
+      color: #d9ffe1;
+      font: inherit;
+      cursor: pointer;
+    }
+
+    button:hover { background: #154c20; }
+    .quiet { border-color: #4f6f55; color: #a9c9b0; }
+
+    .disclaimer {
+      margin-top: 28px;
+      color: #709276;
+      font-size: 12px;
+    }
+
+    @keyframes flicker {
+      0%, 92%, 100% { opacity: 1; transform: translate(0); }
+      93% { opacity: 0.55; transform: translate(2px, -1px); }
+      95% { opacity: 0.9; transform: translate(-1px, 1px); }
+    }
+
+    @keyframes jitter { 50% { transform: translateY(1px); } }
+  </style>
+</head>
+<body>
+  <div class="noise"></div>
+  <main>
+    <span class="label">DEMO MODE · HARMLESS SIMULATION</span>
+    <h1>异常活动<br>已被侦测</h1>
+    <p>正在模拟设备安全日志。此页面不会访问你的文件、相机、位置或系统权限。</p>
+
+    <section class="terminal" aria-label="模拟安全日志">
+      <div class="bar"><span>LOCAL SECURITY CONSOLE</span><span id="clock"></span></div>
+      <pre id="log"></pre>
+    </section>
+
+    <div class="actions">
+      <button id="restart">重新运行模拟</button>
+      <button class="quiet" id="reveal">显示真相</button>
+    </div>
+    <p class="disclaimer" id="truth">这是一个视觉演示，没有真实病毒，也没有任何后台行为。</p>
+  </main>
+
+  <script>
+    const lines = [
+      '[INIT] 读取本地防护规则 ...',
+      '[WARN] 检测到 3 个可疑信号',
+      '[SCAN] 正在隔离未知进程 ...',
+      '[TRACE] 网络活动已标记为模拟数据',
+      '[ALERT] 系统完整性: 演示模式',
+      '[DONE] 未执行任何真实操作。'
+    ];
+    const log = document.querySelector('#log');
+    const truth = document.querySelector('#truth');
+
+    function run() {
+      log.textContent = '';
+      truth.textContent = '这是一个视觉演示，没有真实病毒，也没有任何后台行为。';
+      lines.forEach((line, index) => {
+        setTimeout(() => { log.textContent += `${line}\n`; }, index * 520);
+      });
+    }
+
+    function updateClock() {
+      document.querySelector('#clock').textContent = new Date().toLocaleTimeString('zh-CN', { hour12: false });
+    }
+
+    document.querySelector('#restart').addEventListener('click', run);
+    document.querySelector('#reveal').addEventListener('click', () => {
+      truth.textContent = '真相：它只是一个 HTML 视觉演示。你的手机没有被扫描、锁定或修改。';
+    });
+    updateClock();
+    setInterval(updateClock, 1000);
+    run();
+  </script>
+</body>
+</html>
