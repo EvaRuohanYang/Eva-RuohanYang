@@ -157,9 +157,7 @@
     }
 
     document.querySelector('#restart').addEventListener('click', run);
-    document.querySelector('#reveal').addEventListener('click', () => {
-      truth.textContent = '真相：它只是一个 HTML 视觉演示。你的手机没有被扫描、锁定或修改。';
-    });
+    document.querySelector('#reveal').addEventListener('click', () => 
     updateClock();
     setInterval(updateClock, 1000);
     run();
