@@ -2,23 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-
-<meta name="viewport"
-      content="width=device-width,
-               initial-scale=1.0,
-               maximum-scale=1.0,
-               user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 
 <title>Snake</title>
 
 <style>
-
-* {
-    box-sizing: border-box;
-}
-
-html,
-body {
+html, body {
     margin: 0;
     width: 100%;
     height: 100%;
@@ -27,1574 +16,402 @@ body {
     touch-action: none;
 }
 
-body {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
 canvas {
     display: block;
-    background: #12263a;
+    width: 100vw;
+    height: 100vh;
     touch-action: none;
 }
-
-#ui {
-    position: fixed;
-    top: 12px;
-    left: 50%;
-    transform: translateX(-50%);
-
-    color: white;
-    font-size: 16px;
-    font-weight: bold;
-
-    z-index: 10;
-    pointer-events: none;
-}
-
-#gameOver {
-    display: none;
-
-    position: fixed;
-
-    left: 50%;
-    top: 50%;
-
-    transform: translate(-50%, -50%);
-
-    background: rgba(18, 38, 58, 0.95);
-
-    color: white;
-
-    padding: 30px;
-
-    border-radius: 15px;
-
-    text-align: center;
-
-    z-index: 20;
-}
-
-button {
-    border: none;
-    padding: 12px 25px;
-    border-radius: 10px;
-
-    background: #ee6c4d;
-    color: white;
-
-    font-size: 16px;
-    font-weight: bold;
-}
-
 </style>
 </head>
 
 <body>
 
-<div id="ui">
-    ❤️ <span id="lives">3</span>
-    &nbsp;&nbsp;
-    ⭐ <span id="score">0</span>
-</div>
-
-<div id="gameOver">
-
-    <h1>Game Over</h1>
-
-    <p>
-        Score:
-        <span id="finalScore">0</span>
-    </p>
-
-    <button onclick="restartGame()">
-        Play Again
-    </button>
-
-</div>
-
-<canvas id="canvas"></canvas>
+<canvas id="game"></canvas>
 
 <script>
 
-/* =========================================
-   CANVAS
-========================================= */
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
 
-const canvas =
-    document.getElementById("canvas");
+let width;
+let height;
 
-const ctx =
-    canvas.getContext("2d");
-
-const WIDE = 800;
-const HIGH = 600;
-
-
-/* =========================================
-   SETTINGS
-========================================= */
-
-const GAP = 13;
-
-const SPEED = 3.6;
-
-/*
-   Player turning.
-   Higher = easier control.
-*/
-const PLAYER_TURN = 0.28;
-
-/*
-   Enemy turning.
-*/
-const ENEMY_TURN = 0.11;
-
-const BEND = Math.PI / 8;
-
-const QUARTER = Math.PI / 2;
-
-const WATER = "#12263a";
-
-
-/*
-   Short snakes.
-*/
-const BASE_WIDTHS = [
-    17, 18, 17, 16,
-    15, 14, 13, 12,
-    11, 10, 9, 8,
-    7, 6
-];
-
-
-/* =========================================
-   SCREEN
-========================================= */
-
-let scale = 1;
-let offsetX = 0;
-let offsetY = 0;
-
-
-function resizeCanvas() {
-
-    const width =
-        window.innerWidth;
-
-    const height =
-        window.innerHeight;
-
-
-    scale =
-        Math.min(
-            width / WIDE,
-            height / HIGH
-        );
-
+function resize() {
+    width = window.innerWidth;
+    height = window.innerHeight;
 
     canvas.width = width;
     canvas.height = height;
-
-
-    offsetX =
-        (width - WIDE * scale) / 2;
-
-    offsetY =
-        (height - HIGH * scale) / 2;
 }
 
+resize();
 
-resizeCanvas();
-
-
-window.addEventListener(
-    "resize",
-    resizeCanvas
-);
+window.addEventListener("resize", resize);
 
 
-/* =========================================
-   MATH
-========================================= */
+/* =========================
+   SNAKE
+========================= */
 
-function angleTo(a, b) {
+const snake = [];
 
-    return Math.atan2(
-        b[1] - a[1],
-        b[0] - a[0]
-    );
-}
+const length = 20;
+const gap = 12;
 
+let angle = 0;
 
-function walk(point, angle, distance) {
-
-    return [
-        point[0] +
-        Math.cos(angle) * distance,
-
-        point[1] +
-        Math.sin(angle) * distance
-    ];
-}
+let targetX = width / 2 + 200;
+let targetY = height / 2;
 
 
-function limit(angle, middle, most) {
+/* Start the snake */
 
-    let away =
-        (angle - middle + Math.PI)
-        % (2 * Math.PI)
-        - Math.PI;
+for (let i = 0; i < length; i++) {
 
-
-    if (away > most) {
-        return middle + most;
-    }
-
-
-    if (away < -most) {
-        return middle - most;
-    }
-
-
-    return angle;
-}
-
-
-function distance(a, b) {
-
-    return Math.hypot(
-        a[0] - b[0],
-        a[1] - b[1]
-    );
-}
-
-
-/* =========================================
-   FOOD
-========================================= */
-
-let foods = [];
-
-
-function createFood(x, y) {
-
-    foods.push({
-        x: x,
-        y: y,
-        radius: 7
+    snake.push({
+        x: width / 2 - i * gap,
+        y: height / 2
     });
 }
 
 
-function randomFood() {
+/* =========================
+   CONTROL
+========================= */
 
-    createFood(
+function moveTarget(x, y) {
 
-        30 +
-        Math.random() *
-        (WIDE - 60),
-
-        30 +
-        Math.random() *
-        (HIGH - 60)
-    );
+    targetX = x;
+    targetY = y;
 }
 
 
-function createInitialFood() {
+/* Mouse */
 
-    foods = [];
+canvas.addEventListener("mousemove", function(e) {
 
-    for (
-        let i = 0;
-        i < 18;
-        i++
-    ) {
-
-        randomFood();
-    }
-}
-
-
-/* =========================================
-   SNAKE
-========================================= */
-
-class Snake {
-
-    constructor(
-        x,
-        y,
-        color,
-        player = false,
-        startingAngle = 0
-    ) {
-
-        this.color = color;
-
-        this.player = player;
-
-        this.alive = true;
-
-        this.angle = startingAngle;
-
-        /*
-           IMPORTANT:
-           Player starts with a target
-           far enough away to move.
-        */
-        this.target = [
-            x + 250,
-            y
-        ];
-
-        this.turnTimer = 0;
-
-        this.points = [];
-
-        this.angles = [];
-
-        this.widths =
-            BASE_WIDTHS.slice();
-
-
-        for (
-            let i = 0;
-            i < this.widths.length;
-            i++
-        ) {
-
-            this.points.push([
-
-                x -
-                Math.cos(startingAngle)
-                * i * GAP,
-
-                y -
-                Math.sin(startingAngle)
-                * i * GAP
-
-            ]);
-
-            this.angles.push(
-                startingAngle
-            );
-        }
-    }
-
-
-    head() {
-        return this.points[0];
-    }
-
-
-    grow() {
-
-        const last =
-            this.points[
-                this.points.length - 1
-            ];
-
-        const lastAngle =
-            this.angles[
-                this.angles.length - 1
-            ];
-
-
-        for (
-            let i = 0;
-            i < 3;
-            i++
-        ) {
-
-            this.points.push(
-
-                walk(
-                    last,
-                    lastAngle,
-                    -(i + 1) * GAP
-                )
-            );
-
-            this.angles.push(
-                lastAngle
-            );
-
-            this.widths.push(
-                Math.max(
-                    4,
-                    this.widths[
-                        this.widths.length - 1
-                    ] - 0.35
-                )
-            );
-        }
-    }
-
-
-    /* =====================================
-       PLAYER
-    ===================================== */
-
-    playerMove() {
-
-        const head =
-            this.head();
-
-
-        /*
-           Always calculate the direction
-           toward the current target.
-        */
-
-        const wanted =
-            angleTo(
-                head,
-                this.target
-            );
-
-
-        /*
-           Smooth but responsive.
-        */
-
-        this.angle =
-            limit(
-                wanted,
-                this.angle,
-                PLAYER_TURN
-            );
-
-
-        this.moveBody();
-    }
-
-
-    /* =====================================
-       ENEMY
-    ===================================== */
-
-    enemyMove() {
-
-        const head =
-            this.head();
-
-
-        this.turnTimer--;
-
-
-        if (
-            this.turnTimer <= 0
-        ) {
-
-            this.turnTimer =
-                50 +
-                Math.random() * 120;
-
-
-            const randomAngle =
-                this.angle +
-                (Math.random() - 0.5)
-                * 2.5;
-
-
-            this.target = [
-
-                head[0] +
-                Math.cos(randomAngle)
-                * 180,
-
-                head[1] +
-                Math.sin(randomAngle)
-                * 180
-            ];
-        }
-
-
-        /*
-           Simple wall avoidance.
-        */
-
-        if (head[0] < 70) {
-            this.target[0] += 120;
-        }
-
-        if (head[0] > WIDE - 70) {
-            this.target[0] -= 120;
-        }
-
-        if (head[1] < 70) {
-            this.target[1] += 120;
-        }
-
-        if (head[1] > HIGH - 70) {
-            this.target[1] -= 120;
-        }
-
-
-        const wanted =
-            angleTo(
-                head,
-                this.target
-            );
-
-
-        this.angle =
-            limit(
-                wanted,
-                this.angle,
-                ENEMY_TURN
-            );
-
-
-        this.moveBody();
-    }
-
-
-    /* =====================================
-       MOVE BODY
-    ===================================== */
-
-    moveBody() {
-
-        const head =
-            this.points[0];
-
-
-        /*
-           Move the head.
-        */
-
-        this.points[0] =
-            walk(
-                head,
-                this.angle,
-                SPEED
-            );
-
-
-        /*
-           Walls.
-        */
-
-        if (
-            this.points[0][0] < 20
-        ) {
-
-            this.points[0][0] = 20;
-
-            this.angle = 0;
-        }
-
-
-        if (
-            this.points[0][0] >
-            WIDE - 20
-        ) {
-
-            this.points[0][0] =
-                WIDE - 20;
-
-            this.angle =
-                Math.PI;
-        }
-
-
-        if (
-            this.points[0][1] < 20
-        ) {
-
-            this.points[0][1] = 20;
-
-            this.angle =
-                Math.PI / 2;
-        }
-
-
-        if (
-            this.points[0][1] >
-            HIGH - 20
-        ) {
-
-            this.points[0][1] =
-                HIGH - 20;
-
-            this.angle =
-                -Math.PI / 2;
-        }
-
-
-        /*
-           Body follows head.
-        */
-
-        for (
-            let i = 1;
-            i < this.points.length;
-            i++
-        ) {
-
-            const wanted =
-                angleTo(
-                    this.points[i],
-                    this.points[i - 1]
-                );
-
-
-            this.angles[i] =
-                limit(
-                    wanted,
-                    this.angles[i - 1],
-                    BEND
-                );
-
-
-            this.points[i] =
-                walk(
-                    this.points[i - 1],
-                    this.angles[i],
-                    -GAP
-                );
-        }
-    }
-
-
-    /* =====================================
-       DRAW
-    ===================================== */
-
-    draw() {
-
-        const outline =
-            this.outline();
-
-
-        /*
-           Body.
-        */
-
-        ctx.beginPath();
-
-        ctx.moveTo(
-            outline[0][0],
-            outline[0][1]
-        );
-
-
-        for (
-            let i = 1;
-            i < outline.length;
-            i++
-        ) {
-
-            ctx.lineTo(
-                outline[i][0],
-                outline[i][1]
-            );
-        }
-
-
-        ctx.closePath();
-
-
-        ctx.fillStyle =
-            this.color;
-
-        ctx.fill();
-
-
-        ctx.strokeStyle =
-            "white";
-
-        ctx.lineWidth = 2.5;
-
-        ctx.stroke();
-
-
-        /*
-           Round head.
-        */
-
-        const head =
-            this.head();
-
-
-        const headRadius =
-            this.widths[0] + 3;
-
-
-        ctx.beginPath();
-
-        ctx.arc(
-            head[0],
-            head[1],
-            headRadius,
-            0,
-            Math.PI * 2
-        );
-
-
-        ctx.fillStyle =
-            this.color;
-
-        ctx.fill();
-
-
-        ctx.strokeStyle =
-            "white";
-
-        ctx.lineWidth = 2.5;
-
-        ctx.stroke();
-
-
-        /*
-           Eyes.
-        */
-
-        const facing =
-            this.angle;
-
-
-        const leftEye =
-            walk(
-                head,
-                facing - 0.75,
-                10
-            );
-
-
-        const rightEye =
-            walk(
-                head,
-                facing + 0.75,
-                10
-            );
-
-
-        drawCircle(
-            leftEye,
-            4,
-            "white"
-        );
-
-
-        drawCircle(
-            rightEye,
-            4,
-            "white"
-        );
-
-
-        /*
-           Pupils.
-        */
-
-        drawCircle(
-
-            walk(
-                leftEye,
-                facing,
-                1.5
-            ),
-
-            1.7,
-
-            "#12263a"
-        );
-
-
-        drawCircle(
-
-            walk(
-                rightEye,
-                facing,
-                1.5
-            ),
-
-            1.7,
-
-            "#12263a"
-        );
-    }
-
-
-    outline() {
-
-        const left = [];
-
-        const right = [];
-
-
-        for (
-            let i = 0;
-            i < this.points.length;
-            i++
-        ) {
-
-            left.push(
-
-                walk(
-                    this.points[i],
-                    this.angles[i]
-                    - QUARTER,
-                    this.widths[i]
-                )
-            );
-
-
-            right.push(
-
-                walk(
-                    this.points[i],
-                    this.angles[i]
-                    + QUARTER,
-                    this.widths[i]
-                )
-            );
-        }
-
-
-        right.reverse();
-
-
-        const nose =
-            walk(
-                this.points[0],
-                this.angles[0],
-                this.widths[0]
-            );
-
-
-        return [
-            nose,
-            ...left,
-            ...right
-        ];
-    }
-}
-
-
-/* =========================================
-   GAME VARIABLES
-========================================= */
-
-let mySnake;
-
-let enemies = [];
-
-let lives = 3;
-
-let score = 0;
-
-let gameRunning = true;
-
-
-/* =========================================
-   CREATE GAME
-========================================= */
-
-function createGame() {
-
-    lives = 3;
-
-    score = 0;
-
-    gameRunning = true;
-
-
-    document.getElementById(
-        "gameOver"
-    ).style.display =
-        "none";
-
-
-    /*
-       Player.
-    */
-
-    mySnake =
-        new Snake(
-            250,
-            300,
-            "#4ade80",
-            true,
-            0
-        );
-
-
-    /*
-       Four enemies.
-    */
-
-    enemies = [
-
-        new Snake(
-            600,
-            120,
-            "#ef476f",
-            false,
-            Math.PI
-        ),
-
-        new Snake(
-            650,
-            450,
-            "#ffd166",
-            false,
-            Math.PI
-        ),
-
-        new Snake(
-            400,
-            120,
-            "#a78bfa",
-            false,
-            Math.PI / 2
-        ),
-
-        new Snake(
-            650,
-            280,
-            "#60a5fa",
-            false,
-            Math.PI
-        )
-    ];
-
-
-    createInitialFood();
-
-    updateUI();
-}
-
-
-createGame();
-
-
-/* =========================================
-   FOOD DRAW
-========================================= */
-
-function drawFood() {
-
-    for (
-        const food of foods
-    ) {
-
-        ctx.beginPath();
-
-        ctx.arc(
-            food.x,
-            food.y,
-            food.radius + 4,
-            0,
-            Math.PI * 2
-        );
-
-        ctx.fillStyle =
-            "rgba(255,207,51,0.15)";
-
-        ctx.fill();
-
-
-        ctx.beginPath();
-
-        ctx.arc(
-            food.x,
-            food.y,
-            food.radius,
-            0,
-            Math.PI * 2
-        );
-
-        ctx.fillStyle =
-            "#ffcf33";
-
-        ctx.fill();
-
-
-        ctx.strokeStyle =
-            "white";
-
-        ctx.lineWidth = 2;
-
-        ctx.stroke();
-    }
-}
-
-
-/* =========================================
-   FOOD COLLISION
-========================================= */
-
-function checkFood(snake) {
-
-    for (
-        let i = foods.length - 1;
-        i >= 0;
-        i--
-    ) {
-
-        const food =
-            foods[i];
-
-
-        if (
-            distance(
-                snake.head(),
-                [food.x, food.y]
-            ) < 25
-        ) {
-
-            foods.splice(i, 1);
-
-
-            snake.grow();
-
-
-            if (
-                snake === mySnake
-            ) {
-
-                score += 10;
-
-                updateUI();
-            }
-
-
-            randomFood();
-        }
-    }
-}
-
-
-/* =========================================
-   COLLISION
-========================================= */
-
-function checkCollisions() {
-
-    for (
-        const enemy of enemies
-    ) {
-
-        if (!enemy.alive)
-            continue;
-
-
-        /*
-           Head vs head.
-        */
-
-        if (
-            distance(
-                mySnake.head(),
-                enemy.head()
-            ) < 25
-        ) {
-
-            killSnake(enemy);
-
-            playerDeath();
-
-            return;
-        }
-
-
-        /*
-           Player head vs enemy body.
-        */
-
-        for (
-            let i = 4;
-            i < enemy.points.length;
-            i++
-        ) {
-
-            if (
-                distance(
-                    mySnake.head(),
-                    enemy.points[i]
-                ) < 18
-            ) {
-
-                playerDeath();
-
-                return;
-            }
-        }
-
-
-        /*
-           Enemy head vs player body.
-        */
-
-        for (
-            let i = 4;
-            i < mySnake.points.length;
-            i++
-        ) {
-
-            if (
-                distance(
-                    enemy.head(),
-                    mySnake.points[i]
-                ) < 18
-            ) {
-
-                killSnake(enemy);
-
-                return;
-            }
-        }
-    }
-
-
-    /*
-       Enemy vs enemy.
-    */
-
-    for (
-        let a = 0;
-        a < enemies.length;
-        a++
-    ) {
-
-        const A =
-            enemies[a];
-
-
-        if (!A.alive)
-            continue;
-
-
-        for (
-            let b = a + 1;
-            b < enemies.length;
-            b++
-        ) {
-
-            const B =
-                enemies[b];
-
-
-            if (!B.alive)
-                continue;
-
-
-            if (
-                distance(
-                    A.head(),
-                    B.head()
-                ) < 23
-            ) {
-
-                killSnake(A);
-
-                killSnake(B);
-
-                continue;
-            }
-        }
-    }
-}
-
-
-/* =========================================
-   KILL
-========================================= */
-
-function killSnake(snake) {
-
-    if (!snake.alive)
-        return;
-
-
-    snake.alive = false;
-
-
-    /*
-       Dead snake becomes food.
-    */
-
-    for (
-        let i = 0;
-        i < snake.points.length;
-        i += 2
-    ) {
-
-        const point =
-            snake.points[i];
-
-
-        createFood(
-            point[0],
-            point[1]
-        );
-    }
-}
-
-
-/* =========================================
-   PLAYER DEATH
-========================================= */
-
-function playerDeath() {
-
-    if (!gameRunning)
-        return;
-
-
-    lives--;
-
-    updateUI();
-
-
-    if (lives <= 0) {
-
-        gameOver();
-
-        return;
-    }
-
-
-    /*
-       Respawn.
-    */
-
-    mySnake =
-        new Snake(
-            200 +
-            Math.random() * 200,
-
-            200 +
-            Math.random() * 200,
-
-            "#4ade80",
-
-            true,
-
-            Math.random()
-            * Math.PI * 2
-        );
-}
-
-
-/* =========================================
-   UI
-========================================= */
-
-function updateUI() {
-
-    document.getElementById(
-        "lives"
-    ).textContent =
-        lives;
-
-
-    document.getElementById(
-        "score"
-    ).textContent =
-        score;
-}
-
-
-/* =========================================
-   GAME OVER
-========================================= */
-
-function gameOver() {
-
-    gameRunning = false;
-
-
-    document.getElementById(
-        "finalScore"
-    ).textContent =
-        score;
-
-
-    document.getElementById(
-        "gameOver"
-    ).style.display =
-        "block";
-}
-
-
-/* =========================================
-   RESTART
-========================================= */
-
-function restartGame() {
-
-    createGame();
-}
-
-
-/* =========================================
-   PLAYER CONTROL
-========================================= */
-
-function setTarget(
-    clientX,
-    clientY
-) {
-
-    if (
-        !mySnake ||
-        !mySnake.alive
-    ) {
-        return;
-    }
-
-
-    /*
-       Convert phone coordinates
-       to game coordinates.
-    */
-
-    const x =
-        (clientX - offsetX)
-        / scale;
-
-    const y =
-        (clientY - offsetY)
-        / scale;
-
-
-    /*
-       IMPORTANT:
-       Update target immediately.
-    */
-
-    mySnake.target = [
-        x,
-        y
-    ];
-}
-
-
-/* =========================================
-   MOUSE
-========================================= */
-
-canvas.addEventListener(
-    "mousemove",
-    function(event) {
-
-        setTarget(
-            event.clientX,
-            event.clientY
-        );
-    }
-);
-
-
-/* =========================================
-   TOUCH
-========================================= */
-
-canvas.addEventListener(
-    "touchstart",
-    function(event) {
-
-        event.preventDefault();
-
-
-        const touch =
-            event.touches[0];
-
-
-        setTarget(
-            touch.clientX,
-            touch.clientY
-        );
-    },
-    {
-        passive: false
-    }
-);
-
-
-canvas.addEventListener(
-    "touchmove",
-    function(event) {
-
-        event.preventDefault();
-
-
-        const touch =
-            event.touches[0];
-
-
-        setTarget(
-            touch.clientX,
-            touch.clientY
-        );
-    },
-    {
-        passive: false
-    }
-);
-
-
-/* =========================================
-   GAME LOOP
-========================================= */
-
-function frame() {
-
-    ctx.clearRect(
-        0,
-        0,
-        canvas.width,
-        canvas.height
+    moveTarget(
+        e.clientX,
+        e.clientY
     );
 
+});
 
-    ctx.save();
 
+/* Touch */
 
-    ctx.translate(
-        offsetX,
-        offsetY
+canvas.addEventListener("touchstart", function(e) {
+
+    e.preventDefault();
+
+    const touch = e.touches[0];
+
+    moveTarget(
+        touch.clientX,
+        touch.clientY
     );
 
+}, { passive: false });
 
-    ctx.scale(
-        scale,
-        scale
+
+canvas.addEventListener("touchmove", function(e) {
+
+    e.preventDefault();
+
+    const touch = e.touches[0];
+
+    moveTarget(
+        touch.clientX,
+        touch.clientY
+    );
+
+}, { passive: false });
+
+
+/* =========================
+   ANGLE
+========================= */
+
+function normalizeAngle(a) {
+
+    while (a > Math.PI) {
+        a -= Math.PI * 2;
+    }
+
+    while (a < -Math.PI) {
+        a += Math.PI * 2;
+    }
+
+    return a;
+}
+
+
+/* =========================
+   UPDATE
+========================= */
+
+function update() {
+
+    const head = snake[0];
+
+    const wantedAngle = Math.atan2(
+        targetY - head.y,
+        targetX - head.x
     );
 
 
     /*
-       Background
+       Smooth turning.
+       This is deliberately simple.
     */
 
-    ctx.fillStyle =
-        WATER;
+    let difference =
+        normalizeAngle(
+            wantedAngle - angle
+        );
 
+
+    const turnSpeed = 0.12;
+
+
+    if (difference > turnSpeed) {
+        difference = turnSpeed;
+    }
+
+    if (difference < -turnSpeed) {
+        difference = -turnSpeed;
+    }
+
+
+    angle += difference;
+
+
+    /*
+       Move head.
+    */
+
+    const speed = 4;
+
+
+    head.x += Math.cos(angle) * speed;
+    head.y += Math.sin(angle) * speed;
+
+
+    /*
+       Make the rest of the body
+       follow the previous point.
+    */
+
+    for (let i = 1; i < snake.length; i++) {
+
+        const front = snake[i - 1];
+        const current = snake[i];
+
+
+        const dx = front.x - current.x;
+        const dy = front.y - current.y;
+
+        const distance =
+            Math.sqrt(dx * dx + dy * dy);
+
+
+        if (distance > gap) {
+
+            current.x =
+                front.x -
+                (dx / distance) * gap;
+
+            current.y =
+                front.y -
+                (dy / distance) * gap;
+        }
+    }
+}
+
+
+/* =========================
+   DRAW
+========================= */
+
+function draw() {
+
+    ctx.fillStyle = "#12263a";
 
     ctx.fillRect(
         0,
         0,
-        WIDE,
-        HIGH
+        width,
+        height
     );
 
 
-    if (gameRunning) {
-
-        /*
-           PLAYER
-        */
-
-        if (
-            mySnake.alive
-        ) {
-
-            mySnake.playerMove();
-        }
-
-
-        /*
-           ENEMIES
-        */
-
-        for (
-            const enemy of enemies
-        ) {
-
-            if (
-                enemy.alive
-            ) {
-
-                enemy.enemyMove();
-            }
-        }
-
-
-        /*
-           FOOD
-        */
-
-        checkFood(
-            mySnake
-        );
-
-
-        for (
-            const enemy of enemies
-        ) {
-
-            if (
-                enemy.alive
-            ) {
-
-                checkFood(
-                    enemy
-                );
-            }
-        }
-
-
-        /*
-           COLLISION
-        */
-
-        checkCollisions();
-    }
-
-
     /*
-       Draw food.
-    */
-
-    drawFood();
-
-
-    /*
-       Draw player.
-    */
-
-    if (
-        mySnake.alive
-    ) {
-
-        mySnake.draw();
-    }
-
-
-    /*
-       Draw enemies.
+       Body
     */
 
     for (
-        const enemy of enemies
+        let i = snake.length - 1;
+        i >= 0;
+        i--
     ) {
 
-        if (
-            enemy.alive
-        ) {
+        const part = snake[i];
 
-            enemy.draw();
-        }
+        const radius =
+            Math.max(
+                5,
+                14 - i * 0.3
+            );
+
+
+        ctx.beginPath();
+
+        ctx.arc(
+            part.x,
+            part.y,
+            radius,
+            0,
+            Math.PI * 2
+        );
+
+        ctx.fillStyle = "#4ade80";
+
+        ctx.fill();
     }
 
 
-    ctx.restore();
+    /*
+       Head
+    */
+
+    const head = snake[0];
+
+    const headRadius = 17;
 
 
-    requestAnimationFrame(
-        frame
+    ctx.beginPath();
+
+    ctx.arc(
+        head.x,
+        head.y,
+        headRadius,
+        0,
+        Math.PI * 2
     );
+
+    ctx.fillStyle = "#4ade80";
+
+    ctx.fill();
+
+
+    /*
+       Eyes
+    */
+
+    const eyeDistance = 8;
+
+
+    const eye1X =
+        head.x +
+        Math.cos(angle - 0.65) *
+        eyeDistance;
+
+    const eye1Y =
+        head.y +
+        Math.sin(angle - 0.65) *
+        eyeDistance;
+
+
+    const eye2X =
+        head.x +
+        Math.cos(angle + 0.65) *
+        eyeDistance;
+
+    const eye2Y =
+        head.y +
+        Math.sin(angle + 0.65) *
+        eyeDistance;
+
+
+    ctx.fillStyle = "white";
+
+
+    ctx.beginPath();
+
+    ctx.arc(
+        eye1X,
+        eye1Y,
+        4,
+        0,
+        Math.PI * 2
+    );
+
+    ctx.fill();
+
+
+    ctx.beginPath();
+
+    ctx.arc(
+        eye2X,
+        eye2Y,
+        4,
+        0,
+        Math.PI * 2
+    );
+
+    ctx.fill();
+
+
+    /*
+       Pupils
+    */
+
+    ctx.fillStyle = "#12263a";
+
+
+    ctx.beginPath();
+
+    ctx.arc(
+        eye1X + Math.cos(angle) * 1.5,
+        eye1Y + Math.sin(angle) * 1.5,
+        1.8,
+        0,
+        Math.PI * 2
+    );
+
+    ctx.fill();
+
+
+    ctx.beginPath();
+
+    ctx.arc(
+        eye2X + Math.cos(angle) * 1.5,
+        eye2Y + Math.sin(angle) * 1.5,
+        1.8,
+        0,
+        Math.PI * 2
+    );
+
+    ctx.fill();
 }
 
 
-frame();
+/* =========================
+   GAME LOOP
+========================= */
+
+function gameLoop() {
+
+    update();
+
+    draw();
+
+    requestAnimationFrame(gameLoop);
+}
+
+
+gameLoop();
 
 </script>
 
