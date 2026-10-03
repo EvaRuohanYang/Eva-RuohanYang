@@ -1,417 +1,319 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snake</title>
 
-<title>Snake</title>
+    <style>
+        body {
+            margin: 0;
+            background: #12263a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
 
-<style>
-html, body {
-    margin: 0;
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-    background: #12263a;
-    touch-action: none;
-}
-
-canvas {
-    display: block;
-    width: 100vw;
-    height: 100vh;
-    touch-action: none;
-}
-</style>
+        canvas {
+            background: #12263a;
+            display: block;
+        }
+    </style>
 </head>
 
 <body>
 
-<canvas id="game"></canvas>
+<canvas id="canvas" width="800" height="600"></canvas>
 
 <script>
+    // Window size
+    const WIDE = 800;
+    const HIGH = 600;
 
-const canvas = document.getElementById("game");
-const ctx = canvas.getContext("2d");
+    // Snake settings
+    const GAP = 14;
+    const SPEED = 4;
+    const TURN = 0.15;
+    const NEAR = 30;
 
-let width;
-let height;
+    // Maximum bend between body joints
+    const BEND = Math.PI / 8;
 
-function resize() {
-    width = window.innerWidth;
-    height = window.innerHeight;
+    // Quarter turn
+    const QUARTER = Math.PI / 2;
 
-    canvas.width = width;
-    canvas.height = height;
-}
+    // Snake width from head to tail
+    const WIDTHS = [
+        18, 20, 17, 16, 16, 16, 16, 16,
+        16, 16, 16, 15, 15, 15, 15,
+        14, 14, 13, 13, 12, 12, 11,
+        10, 9, 8, 7, 6, 5, 4
+    ];
 
-resize();
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
 
-window.addEventListener("resize", resize);
+    // Mouse position
+    let mouse = {
+        x: WIDE / 2,
+        y: HIGH / 2
+    };
 
+    // Snake points
+    let points = [];
+    let angles = [];
 
-/* =========================
-   SNAKE
-========================= */
+    // Start the snake as a straight line
+    for (let i = 0; i < WIDTHS.length; i++) {
+        points.push({
+            x: WIDE / 2 - i * GAP,
+            y: HIGH / 2
+        });
 
-const snake = [];
+        angles.push(0);
+    }
 
-const length = 20;
-const gap = 12;
+    // Mouse movement
+    canvas.addEventListener("mousemove", function(event) {
+        const rect = canvas.getBoundingClientRect();
 
-let angle = 0;
-
-let targetX = width / 2 + 200;
-let targetY = height / 2;
-
-
-/* Start the snake */
-
-for (let i = 0; i < length; i++) {
-
-    snake.push({
-        x: width / 2 - i * gap,
-        y: height / 2
+        mouse.x = event.clientX - rect.left;
+        mouse.y = event.clientY - rect.top;
     });
-}
 
 
-/* =========================
-   CONTROL
-========================= */
-
-function moveTarget(x, y) {
-
-    targetX = x;
-    targetY = y;
-}
-
-
-/* Mouse */
-
-canvas.addEventListener("mousemove", function(e) {
-
-    moveTarget(
-        e.clientX,
-        e.clientY
-    );
-
-});
-
-
-/* Touch */
-
-canvas.addEventListener("touchstart", function(e) {
-
-    e.preventDefault();
-
-    const touch = e.touches[0];
-
-    moveTarget(
-        touch.clientX,
-        touch.clientY
-    );
-
-}, { passive: false });
-
-
-canvas.addEventListener("touchmove", function(e) {
-
-    e.preventDefault();
-
-    const touch = e.touches[0];
-
-    moveTarget(
-        touch.clientX,
-        touch.clientY
-    );
-
-}, { passive: false });
-
-
-/* =========================
-   ANGLE
-========================= */
-
-function normalizeAngle(a) {
-
-    while (a > Math.PI) {
-        a -= Math.PI * 2;
+    // Find the angle from one point to another
+    function angleTo(start, end) {
+        return Math.atan2(
+            end.y - start.y,
+            end.x - start.x
+        );
     }
 
-    while (a < -Math.PI) {
-        a += Math.PI * 2;
+
+    // Walk a certain distance in a direction
+    function walk(start, angle, distance) {
+        return {
+            x: start.x + Math.cos(angle) * distance,
+            y: start.y + Math.sin(angle) * distance
+        };
     }
 
-    return a;
-}
+
+    // Keep an angle within a certain turning limit
+    function limit(angle, middle, most) {
+
+        let away =
+            (angle - middle + Math.PI) %
+            (2 * Math.PI) - Math.PI;
+
+        if (away > most) {
+            return middle + most;
+        }
+
+        if (away < -most) {
+            return middle - most;
+        }
+
+        return angle;
+    }
 
 
-/* =========================
-   UPDATE
-========================= */
+    // Move the snake
+    function moveSnake() {
 
-function update() {
+        const head = points[0];
 
-    const head = snake[0];
+        // Distance from head to mouse
+        const dx = head.x - mouse.x;
+        const dy = head.y - mouse.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
 
-    const wantedAngle = Math.atan2(
-        targetY - head.y,
-        targetX - head.x
-    );
+        // Stop when the snake is close enough
+        if (distance < NEAR) {
+            return;
+        }
 
+        // The head wants to face the mouse
+        const wanted = angleTo(head, mouse);
 
-    /*
-       Smooth turning.
-       This is deliberately simple.
-    */
+        // But it can only turn a little bit each frame
+        angles[0] = limit(
+            wanted,
+            angles[0],
+            TURN
+        );
 
-    let difference =
-        normalizeAngle(
-            wantedAngle - angle
+        // Move the head
+        points[0] = walk(
+            head,
+            angles[0],
+            SPEED
         );
 
 
-    const turnSpeed = 0.12;
+        // Move the rest of the body
+        for (let i = 1; i < WIDTHS.length; i++) {
 
-
-    if (difference > turnSpeed) {
-        difference = turnSpeed;
-    }
-
-    if (difference < -turnSpeed) {
-        difference = -turnSpeed;
-    }
-
-
-    angle += difference;
-
-
-    /*
-       Move head.
-    */
-
-    const speed = 4;
-
-
-    head.x += Math.cos(angle) * speed;
-    head.y += Math.sin(angle) * speed;
-
-
-    /*
-       Make the rest of the body
-       follow the previous point.
-    */
-
-    for (let i = 1; i < snake.length; i++) {
-
-        const front = snake[i - 1];
-        const current = snake[i];
-
-
-        const dx = front.x - current.x;
-        const dy = front.y - current.y;
-
-        const distance =
-            Math.sqrt(dx * dx + dy * dy);
-
-
-        if (distance > gap) {
-
-            current.x =
-                front.x -
-                (dx / distance) * gap;
-
-            current.y =
-                front.y -
-                (dy / distance) * gap;
-        }
-    }
-}
-
-
-/* =========================
-   DRAW
-========================= */
-
-function draw() {
-
-    ctx.fillStyle = "#12263a";
-
-    ctx.fillRect(
-        0,
-        0,
-        width,
-        height
-    );
-
-
-    /*
-       Body
-    */
-
-    for (
-        let i = snake.length - 1;
-        i >= 0;
-        i--
-    ) {
-
-        const part = snake[i];
-
-        const radius =
-            Math.max(
-                5,
-                14 - i * 0.3
+            // This point wants to face the point in front of it
+            const wanted = angleTo(
+                points[i],
+                points[i - 1]
             );
 
+            // Limit how much this joint can bend
+            angles[i] = limit(
+                wanted,
+                angles[i - 1],
+                BEND
+            );
+
+            // Keep the correct distance between body points
+            points[i] = walk(
+                points[i - 1],
+                angles[i],
+                -GAP
+            );
+        }
+    }
+
+
+    // Get the outline of the snake
+    function getOutline() {
+
+        let left = [];
+        let right = [];
+
+        for (let i = 0; i < WIDTHS.length; i++) {
+
+            // One side
+            left.push(
+                walk(
+                    points[i],
+                    angles[i] - QUARTER,
+                    WIDTHS[i]
+                )
+            );
+
+            // Other side
+            right.push(
+                walk(
+                    points[i],
+                    angles[i] + QUARTER,
+                    WIDTHS[i]
+                )
+            );
+        }
+
+        // Reverse the right side
+        right.reverse();
+
+        // Nose
+        const nose = walk(
+            points[0],
+            angles[0],
+            WIDTHS[0]
+        );
+
+        return [nose, ...left, ...right];
+    }
+
+
+    // Draw the snake
+    function drawSnake() {
+
+        ctx.clearRect(
+            0,
+            0,
+            WIDE,
+            HIGH
+        );
+
+        const outline = getOutline();
+
+        if (outline.length === 0) {
+            return;
+        }
+
+
+        // Start drawing the snake
+        ctx.beginPath();
+
+        ctx.moveTo(
+            outline[0].x,
+            outline[0].y
+        );
+
+        // Draw the outline
+        for (let i = 1; i < outline.length; i++) {
+
+            ctx.lineTo(
+                outline[i].x,
+                outline[i].y
+            );
+        }
+
+        ctx.closePath();
+
+        // Snake color
+        ctx.fillStyle = "#ee6c4d";
+
+        // White border
+        ctx.strokeStyle = "white";
+        ctx.lineWidth = 3;
+
+        ctx.fill();
+        ctx.stroke();
+
+
+        // Draw the eyes
+        const head = points[0];
+        const facing = angles[0];
+
+        drawCircle(
+            walk(head, facing - 1.2, 9),
+            3
+        );
+
+        drawCircle(
+            walk(head, facing + 1.2, 9),
+            3
+        );
+    }
+
+
+    // Draw a circle
+    function drawCircle(position, radius) {
 
         ctx.beginPath();
 
         ctx.arc(
-            part.x,
-            part.y,
+            position.x,
+            position.y,
             radius,
             0,
             Math.PI * 2
         );
 
-        ctx.fillStyle = "#4ade80";
-
+        ctx.fillStyle = "white";
         ctx.fill();
     }
 
 
-    /*
-       Head
-    */
+    // Game loop
+    function frame() {
 
-    const head = snake[0];
+        moveSnake();
+        drawSnake();
 
-    const headRadius = 17;
-
-
-    ctx.beginPath();
-
-    ctx.arc(
-        head.x,
-        head.y,
-        headRadius,
-        0,
-        Math.PI * 2
-    );
-
-    ctx.fillStyle = "#4ade80";
-
-    ctx.fill();
+        requestAnimationFrame(frame);
+    }
 
 
-    /*
-       Eyes
-    */
-
-    const eyeDistance = 8;
-
-
-    const eye1X =
-        head.x +
-        Math.cos(angle - 0.65) *
-        eyeDistance;
-
-    const eye1Y =
-        head.y +
-        Math.sin(angle - 0.65) *
-        eyeDistance;
-
-
-    const eye2X =
-        head.x +
-        Math.cos(angle + 0.65) *
-        eyeDistance;
-
-    const eye2Y =
-        head.y +
-        Math.sin(angle + 0.65) *
-        eyeDistance;
-
-
-    ctx.fillStyle = "white";
-
-
-    ctx.beginPath();
-
-    ctx.arc(
-        eye1X,
-        eye1Y,
-        4,
-        0,
-        Math.PI * 2
-    );
-
-    ctx.fill();
-
-
-    ctx.beginPath();
-
-    ctx.arc(
-        eye2X,
-        eye2Y,
-        4,
-        0,
-        Math.PI * 2
-    );
-
-    ctx.fill();
-
-
-    /*
-       Pupils
-    */
-
-    ctx.fillStyle = "#12263a";
-
-
-    ctx.beginPath();
-
-    ctx.arc(
-        eye1X + Math.cos(angle) * 1.5,
-        eye1Y + Math.sin(angle) * 1.5,
-        1.8,
-        0,
-        Math.PI * 2
-    );
-
-    ctx.fill();
-
-
-    ctx.beginPath();
-
-    ctx.arc(
-        eye2X + Math.cos(angle) * 1.5,
-        eye2Y + Math.sin(angle) * 1.5,
-        1.8,
-        0,
-        Math.PI * 2
-    );
-
-    ctx.fill();
-}
-
-
-/* =========================
-   GAME LOOP
-========================= */
-
-function gameLoop() {
-
-    update();
-
-    draw();
-
-    requestAnimationFrame(gameLoop);
-}
-
-
-gameLoop();
+    // Start the snake
+    frame();
 
 </script>
 
