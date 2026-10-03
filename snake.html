@@ -24,7 +24,6 @@ body {
     height: 100%;
     overflow: hidden;
     background: #12263a;
-    font-family: Arial, sans-serif;
     touch-action: none;
 }
 
@@ -50,7 +49,6 @@ canvas {
     font-weight: bold;
 
     z-index: 10;
-
     pointer-events: none;
 
     text-align: center;
@@ -127,7 +125,6 @@ button {
 
 <canvas id="canvas"></canvas>
 
-
 <script>
 
 /* =========================================
@@ -148,11 +145,15 @@ const HIGH = 600;
    GAME SETTINGS
 ========================================= */
 
-const GAP = 14;
+const GAP = 13;
 
-const SPEED = 3.5;
+const SPEED = 3.6;
 
-const TURN = 0.15;
+/*
+    Faster turning than before,
+    but still smooth.
+*/
+const TURN = 0.22;
 
 const BEND = Math.PI / 8;
 
@@ -161,11 +162,14 @@ const QUARTER = Math.PI / 2;
 const WATER = "#12263a";
 
 
+/*
+    Shorter starting snake.
+*/
+
 const BASE_WIDTHS = [
-    18,20,17,16,16,16,16,16,
-    16,16,16,15,15,15,14,14,
-    13,13,12,12,11,10,9,8,
-    7,6,5,4
+    17, 18, 17, 16, 15,
+    14, 13, 12, 11, 10,
+    9, 8, 7, 6
 ];
 
 
@@ -317,7 +321,7 @@ function createInitialFood() {
 
     for (
         let i = 0;
-        i < 15;
+        i < 18;
         i++
     ) {
 
@@ -336,7 +340,8 @@ class Snake {
         x,
         y,
         color,
-        player = false
+        player = false,
+        startingAngle = 0
     ) {
 
         this.color = color;
@@ -345,7 +350,8 @@ class Snake {
 
         this.alive = true;
 
-        this.angle = 0;
+        this.angle =
+            startingAngle;
 
         this.target = [
             x + 100,
@@ -370,13 +376,19 @@ class Snake {
 
             this.points.push([
 
-                x - i * GAP,
+                x -
+                Math.cos(startingAngle)
+                * i * GAP,
 
-                y
+                y -
+                Math.sin(startingAngle)
+                * i * GAP
 
             ]);
 
-            this.angles.push(0);
+            this.angles.push(
+                startingAngle
+            );
         }
     }
 
@@ -400,19 +412,27 @@ class Snake {
             ];
 
 
+        /*
+            One food = noticeably longer,
+            but not too much.
+        */
+
         for (
             let i = 0;
-            i < 4;
+            i < 3;
             i++
         ) {
 
-            this.points.push(
-
+            const newPoint =
                 walk(
                     last,
                     lastAngle,
                     -(i + 1) * GAP
-                )
+                );
+
+
+            this.points.push(
+                newPoint
             );
 
             this.angles.push(
@@ -424,12 +444,16 @@ class Snake {
                     4,
                     this.widths[
                         this.widths.length - 1
-                    ] - 0.3
+                    ] - 0.35
                 )
             );
         }
     }
 
+
+    /* =====================================
+       PLAYER MOVEMENT
+    ===================================== */
 
     playerMove() {
 
@@ -444,6 +468,10 @@ class Snake {
             );
 
 
+        /*
+            Smooth but more responsive.
+        */
+
         this.angle =
             limit(
                 wanted,
@@ -455,6 +483,10 @@ class Snake {
         this.moveBody();
     }
 
+
+    /* =====================================
+       ENEMY MOVEMENT
+    ===================================== */
 
     enemyMove() {
 
@@ -466,10 +498,8 @@ class Snake {
 
 
         /*
-            Enemy AI is intentionally weak.
-
-            It mostly keeps going forward
-            and sometimes randomly turns.
+            Enemies make random decisions.
+            They are intentionally weaker.
         */
 
         if (
@@ -477,51 +507,57 @@ class Snake {
         ) {
 
             this.turnTimer =
-                40 +
-                Math.random() * 100;
+                50 +
+                Math.random() * 120;
+
+
+            const randomAngle =
+                this.angle +
+                (Math.random() - 0.5)
+                * 2.4;
 
 
             this.target = [
 
                 head[0] +
-                Math.cos(
-                    this.angle +
-                    (Math.random() - 0.5)
-                    * 2
-                ) * 150,
+                Math.cos(randomAngle)
+                * 180,
 
                 head[1] +
-                Math.sin(
-                    this.angle +
-                    (Math.random() - 0.5)
-                    * 2
-                ) * 150
+                Math.sin(randomAngle)
+                * 180
             ];
         }
 
 
         /*
-            Weak wall avoidance.
+            Very simple wall avoidance.
         */
 
-        if (head[0] < 60) {
+        if (head[0] < 70) {
 
-            this.target[0] += 150;
+            this.target[0] += 120;
         }
 
-        if (head[0] > WIDE - 60) {
+        if (
+            head[0] >
+            WIDE - 70
+        ) {
 
-            this.target[0] -= 150;
+            this.target[0] -= 120;
         }
 
-        if (head[1] < 60) {
+        if (head[1] < 70) {
 
-            this.target[1] += 150;
+            this.target[1] += 120;
         }
 
-        if (head[1] > HIGH - 60) {
+        if (
+            head[1] >
+            HIGH - 70
+        ) {
 
-            this.target[1] -= 150;
+            this.target[1] -= 120;
         }
 
 
@@ -532,17 +568,26 @@ class Snake {
             );
 
 
+        /*
+            Enemies turn slower
+            than the player.
+        */
+
         this.angle =
             limit(
                 wanted,
                 this.angle,
-                TURN
+                0.12
             );
 
 
         this.moveBody();
     }
 
+
+    /* =====================================
+       BODY MOVEMENT
+    ===================================== */
 
     moveBody() {
 
@@ -559,8 +604,7 @@ class Snake {
 
 
         /*
-            Keep the snake inside
-            the game area.
+            Wall
         */
 
         if (
@@ -611,7 +655,7 @@ class Snake {
 
 
         /*
-            Move body segments.
+            Body follows head.
         */
 
         for (
@@ -645,11 +689,19 @@ class Snake {
     }
 
 
+    /* =====================================
+       DRAW
+    ===================================== */
+
     draw() {
 
         const outline =
             this.outline();
 
+
+        /*
+            Body
+        */
 
         ctx.beginPath();
 
@@ -685,7 +737,45 @@ class Snake {
         ctx.strokeStyle =
             "white";
 
-        ctx.lineWidth = 3;
+        ctx.lineWidth = 2.5;
+
+        ctx.stroke();
+
+
+        /*
+            New round head
+        */
+
+        const head =
+            this.head();
+
+
+        const headRadius =
+            this.widths[0] + 3;
+
+
+        ctx.beginPath();
+
+
+        ctx.arc(
+            head[0],
+            head[1],
+            headRadius,
+            0,
+            Math.PI * 2
+        );
+
+
+        ctx.fillStyle =
+            this.color;
+
+        ctx.fill();
+
+
+        ctx.strokeStyle =
+            "white";
+
+        ctx.lineWidth = 2.5;
 
         ctx.stroke();
 
@@ -694,39 +784,72 @@ class Snake {
             Eyes
         */
 
-        const head =
-            this.head();
-
-
         const facing =
             this.angles[0];
 
 
+        const eyeDistance = 9;
+
+
+        const leftEye =
+            walk(
+                head,
+                facing - 0.75,
+                eyeDistance
+            );
+
+
+        const rightEye =
+            walk(
+                head,
+                facing + 0.75,
+                eyeDistance
+            );
+
+
+        drawCircle(
+            leftEye,
+            4,
+            "white"
+        );
+
+
+        drawCircle(
+            rightEye,
+            4,
+            "white"
+        );
+
+
+        /*
+            Pupils
+        */
+
         drawCircle(
 
             walk(
-                head,
-                facing - 1.2,
-                9
+                leftEye,
+                facing,
+                1.5
             ),
 
-            3,
+            1.7,
 
-            "white"
+            "#12263a"
         );
 
 
         drawCircle(
 
             walk(
-                head,
-                facing + 1.2,
-                9
+                rightEye,
+                facing,
+                1.5
             ),
 
-            3,
+            1.7,
 
-            "white"
+            "#12263a"
         );
     }
 
@@ -750,6 +873,7 @@ class Snake {
                     this.points[i],
                     this.angles[i]
                     - QUARTER,
+
                     this.widths[i]
                 )
             );
@@ -761,6 +885,7 @@ class Snake {
                     this.points[i],
                     this.angles[i]
                     + QUARTER,
+
                     this.widths[i]
                 )
             );
@@ -788,7 +913,7 @@ class Snake {
 
 
 /* =========================================
-   GAME VARIABLES
+   GAME
 ========================================= */
 
 let mySnake;
@@ -817,30 +942,61 @@ function createGame() {
 
     document.getElementById(
         "gameOver"
-    ).style.display = "none";
+    ).style.display =
+        "none";
 
+
+    /*
+        Player
+    */
 
     mySnake =
         new Snake(
             250,
             300,
             "#4ade80",
-            true
+            true,
+            0
         );
 
+
+    /*
+        Five snakes total.
+        They start short.
+    */
 
     enemies = [
 
         new Snake(
             600,
-            300,
-            "#ef476f"
+            120,
+            "#ef476f",
+            false,
+            Math.PI
         ),
 
         new Snake(
+            650,
             450,
-            150,
-            "#ffd166"
+            "#ffd166",
+            false,
+            Math.PI
+        ),
+
+        new Snake(
+            400,
+            120,
+            "#a78bfa",
+            false,
+            Math.PI / 2
+        ),
+
+        new Snake(
+            650,
+            280,
+            "#60a5fa",
+            false,
+            Math.PI
         )
     ];
 
@@ -856,44 +1012,40 @@ createGame();
 
 
 /* =========================================
-   DRAW CIRCLE
-========================================= */
-
-function drawCircle(
-    position,
-    radius,
-    color
-) {
-
-    ctx.beginPath();
-
-
-    ctx.arc(
-        position[0],
-        position[1],
-        radius,
-        0,
-        Math.PI * 2
-    );
-
-
-    ctx.fillStyle =
-        color;
-
-    ctx.fill();
-}
-
-
-/* =========================================
-   DRAW FOOD
+   FOOD DRAW
 ========================================= */
 
 function drawFood() {
 
-    for (const food of foods) {
+    for (
+        const food of foods
+    ) {
+
+        /*
+            Glow
+        */
 
         ctx.beginPath();
 
+        ctx.arc(
+            food.x,
+            food.y,
+            food.radius + 4,
+            0,
+            Math.PI * 2
+        );
+
+        ctx.fillStyle =
+            "rgba(255,207,51,0.15)";
+
+        ctx.fill();
+
+
+        /*
+            Food
+        */
+
+        ctx.beginPath();
 
         ctx.arc(
             food.x,
@@ -902,7 +1054,6 @@ function drawFood() {
             0,
             Math.PI * 2
         );
-
 
         ctx.fillStyle =
             "#ffcf33";
@@ -921,7 +1072,7 @@ function drawFood() {
 
 
 /* =========================================
-   EAT FOOD
+   FOOD COLLISION
 ========================================= */
 
 function checkFood(snake) {
@@ -949,7 +1100,9 @@ function checkFood(snake) {
             snake.grow();
 
 
-            if (snake === mySnake) {
+            if (
+                snake === mySnake
+            ) {
 
                 score += 10;
 
@@ -964,26 +1117,37 @@ function checkFood(snake) {
 
 
 /* =========================================
-   COLLISION
+   COLLISIONS
 ========================================= */
 
 function checkCollisions() {
 
     /*
-        Player hits enemy.
+        Player vs enemy
     */
 
-    for (const enemy of enemies) {
+    for (
+        const enemy of enemies
+    ) {
 
-        if (!enemy.alive) continue;
+        if (!enemy.alive)
+            continue;
 
+
+        /*
+            Head vs head
+        */
 
         if (
             distance(
                 mySnake.head(),
                 enemy.head()
-            ) < 22
+            ) < 25
         ) {
+
+            /*
+                Both die.
+            */
 
             killSnake(enemy);
 
@@ -994,7 +1158,7 @@ function checkCollisions() {
 
 
         /*
-            Player hits enemy body.
+            Player head hits enemy body
         */
 
         for (
@@ -1015,17 +1179,11 @@ function checkCollisions() {
                 return;
             }
         }
-    }
 
 
-    /*
-        Enemy hits player body.
-    */
-
-    for (const enemy of enemies) {
-
-        if (!enemy.alive) continue;
-
+        /*
+            Enemy head hits player body
+        */
 
         for (
             let i = 4;
@@ -1046,6 +1204,75 @@ function checkCollisions() {
             }
         }
     }
+
+
+    /*
+        Enemy vs enemy
+    */
+
+    for (
+        let a = 0;
+        a < enemies.length;
+        a++
+    ) {
+
+        const enemyA =
+            enemies[a];
+
+
+        if (!enemyA.alive)
+            continue;
+
+
+        for (
+            let b = a + 1;
+            b < enemies.length;
+            b++
+        ) {
+
+            const enemyB =
+                enemies[b];
+
+
+            if (!enemyB.alive)
+                continue;
+
+
+            if (
+                distance(
+                    enemyA.head(),
+                    enemyB.head()
+                ) < 23
+            ) {
+
+                killSnake(enemyA);
+
+                killSnake(enemyB);
+
+                continue;
+            }
+
+
+            for (
+                let i = 4;
+                i < enemyB.points.length;
+                i++
+            ) {
+
+                if (
+                    distance(
+                        enemyA.head(),
+                        enemyB.points[i]
+                    ) < 18
+                ) {
+
+                    killSnake(enemyA);
+
+                    break;
+                }
+            }
+        }
+    }
 }
 
 
@@ -1055,21 +1282,21 @@ function checkCollisions() {
 
 function killSnake(snake) {
 
-    if (!snake.alive) return;
+    if (!snake.alive)
+        return;
 
 
     snake.alive = false;
 
 
     /*
-        Turn the dead snake
-        into food.
+        Dead snake becomes food.
     */
 
     for (
         let i = 0;
         i < snake.points.length;
-        i += 3
+        i += 2
     ) {
 
         const point =
@@ -1081,12 +1308,6 @@ function killSnake(snake) {
             point[1]
         );
     }
-
-
-    if (snake === mySnake) {
-
-        playerDeath();
-    }
 }
 
 
@@ -1096,7 +1317,8 @@ function killSnake(snake) {
 
 function playerDeath() {
 
-    if (!gameRunning) return;
+    if (!gameRunning)
+        return;
 
 
     lives--;
@@ -1114,20 +1336,23 @@ function playerDeath() {
 
 
     /*
-        Respawn player.
+        Respawn
     */
 
     mySnake =
         new Snake(
             250 +
-            Math.random() * 100,
+            Math.random() * 150,
 
-            250 +
-            Math.random() * 100,
+            200 +
+            Math.random() * 200,
 
             "#4ade80",
 
-            true
+            true,
+
+            Math.random() *
+            Math.PI * 2
         );
 }
 
@@ -1140,12 +1365,14 @@ function updateUI() {
 
     document.getElementById(
         "lives"
-    ).textContent = lives;
+    ).textContent =
+        lives;
 
 
     document.getElementById(
         "score"
-    ).textContent = score;
+    ).textContent =
+        score;
 }
 
 
@@ -1160,12 +1387,14 @@ function gameOver() {
 
     document.getElementById(
         "finalScore"
-    ).textContent = score;
+    ).textContent =
+        score;
 
 
     document.getElementById(
         "gameOver"
-    ).style.display = "block";
+    ).style.display =
+        "block";
 }
 
 
@@ -1188,7 +1417,10 @@ function setTarget(
     clientY
 ) {
 
-    if (!mySnake || !mySnake.alive)
+    if (
+        !mySnake ||
+        !mySnake.alive
+    )
         return;
 
 
@@ -1220,7 +1452,7 @@ canvas.addEventListener(
 
 
 /*
-    Phone
+    Touch
 */
 
 canvas.addEventListener(
@@ -1239,7 +1471,9 @@ canvas.addEventListener(
             touch.clientY
         );
     },
-    { passive: false }
+    {
+        passive: false
+    }
 );
 
 
@@ -1259,7 +1493,9 @@ canvas.addEventListener(
             touch.clientY
         );
     },
-    { passive: false }
+    {
+        passive: false
+    }
 );
 
 
@@ -1311,7 +1547,7 @@ function frame() {
     if (gameRunning) {
 
         /*
-            Move player
+            Player
         */
 
         if (mySnake.alive) {
@@ -1321,7 +1557,7 @@ function frame() {
 
 
         /*
-            Move enemies
+            Enemies
         */
 
         for (
@@ -1354,7 +1590,7 @@ function frame() {
 
 
         /*
-            Collision
+            Collisions
         */
 
         checkCollisions();
@@ -1362,25 +1598,17 @@ function frame() {
 
 
     /*
-        Draw food
+        Draw
     */
 
     drawFood();
 
-
-    /*
-        Draw player
-    */
 
     if (mySnake.alive) {
 
         mySnake.draw();
     }
 
-
-    /*
-        Draw enemies
-    */
 
     for (
         const enemy of enemies
