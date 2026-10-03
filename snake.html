@@ -2,23 +2,31 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
 <title>Snake Game</title>
 
 <style>
-    body {
+    html, body {
         margin: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
         background: #12263a;
+        touch-action: none;
+    }
+
+    body {
         display: flex;
         justify-content: center;
         align-items: center;
-        height: 100vh;
-        overflow: hidden;
     }
 
     canvas {
         background: #12263a;
         display: block;
+        touch-action: none;
     }
 </style>
 </head>
@@ -35,27 +43,31 @@ const ctx = canvas.getContext("2d");
 const WIDE = 800;
 const HIGH = 600;
 
+
+/* =========================
+   SETTINGS
+========================= */
+
 const GAP = 14;
 
 const PLAYER_SPEED = 4.5;
-const PLAYER_TURN = 0.28;
+const PLAYER_TURN = 0.30;
 
-const NEAR = 15;
+const NEAR = 12;
 const BEND = Math.PI / 5;
+
 const QUARTER = Math.PI / 2;
 
-
-// Your snake starts short
 const PLAYER_START_LENGTH = 10;
 
-
-// How many small snakes should normally be alive
 const MAX_AI_SNAKES = 8;
 
-
-// New snakes appear every few seconds
 const SPAWN_TIME = 120;
 
+
+/* =========================
+   SNAKE WIDTH
+========================= */
 
 const WIDTHS = [
     18, 20, 17, 16, 16, 16, 16, 16,
@@ -65,20 +77,128 @@ const WIDTHS = [
 ];
 
 
+/* =========================
+   MOUSE / TOUCH POSITION
+========================= */
+
 let mouse = {
     x: WIDE / 2,
     y: HIGH / 2
 };
 
 
-canvas.addEventListener("mousemove", function(event) {
+/*
+    Convert screen coordinates
+    into canvas coordinates.
 
-    const rect = canvas.getBoundingClientRect();
+    This is important because
+    the canvas may be scaled on
+    a phone.
+*/
 
-    mouse.x = event.clientX - rect.left;
-    mouse.y = event.clientY - rect.top;
+function setTarget(clientX, clientY) {
 
-});
+    const rect =
+        canvas.getBoundingClientRect();
+
+    mouse.x =
+        (clientX - rect.left)
+        * (WIDE / rect.width);
+
+    mouse.y =
+        (clientY - rect.top)
+        * (HIGH / rect.height);
+
+}
+
+
+/* =========================
+   COMPUTER CONTROL
+   mousemove
+========================= */
+
+canvas.addEventListener(
+    "mousemove",
+    function(event) {
+
+        setTarget(
+            event.clientX,
+            event.clientY
+        );
+
+    }
+);
+
+
+/* =========================
+   PHONE CONTROL
+   touchmove
+========================= */
+
+canvas.addEventListener(
+    "touchmove",
+    function(event) {
+
+        /*
+            Prevent the page from
+            scrolling while playing.
+        */
+
+        event.preventDefault();
+
+
+        if (event.touches.length === 0) {
+            return;
+        }
+
+
+        const touch =
+            event.touches[0];
+
+
+        setTarget(
+            touch.clientX,
+            touch.clientY
+        );
+
+    },
+    {
+        passive: false
+    }
+);
+
+
+/*
+    Also set the target immediately
+    when the player touches the screen.
+*/
+
+canvas.addEventListener(
+    "touchstart",
+    function(event) {
+
+        event.preventDefault();
+
+
+        if (event.touches.length === 0) {
+            return;
+        }
+
+
+        const touch =
+            event.touches[0];
+
+
+        setTarget(
+            touch.clientX,
+            touch.clientY
+        );
+
+    },
+    {
+        passive: false
+    }
+);
 
 
 /* =========================
@@ -98,8 +218,13 @@ function angleTo(start, end) {
 function walk(start, angle, distance) {
 
     return {
-        x: start.x + Math.cos(angle) * distance,
-        y: start.y + Math.sin(angle) * distance
+        x:
+            start.x +
+            Math.cos(angle) * distance,
+
+        y:
+            start.y +
+            Math.sin(angle) * distance
     };
 
 }
@@ -108,16 +233,20 @@ function walk(start, angle, distance) {
 function limit(angle, middle, most) {
 
     let away =
-        (angle - middle + Math.PI) %
-        (2 * Math.PI) - Math.PI;
+        (angle - middle + Math.PI)
+        % (2 * Math.PI)
+        - Math.PI;
+
 
     if (away > most) {
         return middle + most;
     }
 
+
     if (away < -most) {
         return middle - most;
     }
+
 
     return angle;
 
@@ -139,6 +268,7 @@ function createSnake(
     let snake = {
 
         points: [],
+
         angles: [],
 
         color: color,
@@ -148,19 +278,30 @@ function createSnake(
         alive: true,
 
         targetAngle:
-            Math.random() * Math.PI * 2,
+            Math.random() *
+            Math.PI * 2,
 
         changeTimer: 0
 
     };
 
 
-    for (let i = 0; i < length; i++) {
+    for (
+        let i = 0;
+        i < length;
+        i++
+    ) {
 
         snake.points.push({
-            x: x - i * GAP,
-            y: y
+
+            x:
+                x - i * GAP,
+
+            y:
+                y
+
         });
+
 
         snake.angles.push(0);
 
@@ -176,13 +317,14 @@ function createSnake(
    PLAYER
 ========================= */
 
-let player = createSnake(
-    WIDE / 2,
-    HIGH / 2,
-    PLAYER_START_LENGTH,
-    "#ee6c4d",
-    true
-);
+let player =
+    createSnake(
+        WIDE / 2,
+        HIGH / 2,
+        PLAYER_START_LENGTH,
+        "#ee6c4d",
+        true
+    );
 
 
 let snakes = [player];
@@ -193,6 +335,7 @@ let snakes = [player];
 ========================= */
 
 const AI_COLORS = [
+
     "#4cc9f0",
     "#90be6d",
     "#f72585",
@@ -201,6 +344,7 @@ const AI_COLORS = [
     "#43aa8b",
     "#ff9f1c",
     "#72efdd"
+
 ];
 
 
@@ -216,9 +360,13 @@ const FOOD_COUNT = 30;
 function createFood(x, y) {
 
     return {
+
         x: x,
+
         y: y,
+
         radius: 5
+
     };
 
 }
@@ -227,17 +375,32 @@ function createFood(x, y) {
 function addRandomFood() {
 
     foods.push(
+
         createFood(
-            20 + Math.random() * (WIDE - 40),
-            20 + Math.random() * (HIGH - 40)
+
+            20 +
+            Math.random() *
+            (WIDE - 40),
+
+            20 +
+            Math.random() *
+            (HIGH - 40)
+
         )
+
     );
 
 }
 
 
-for (let i = 0; i < FOOD_COUNT; i++) {
+for (
+    let i = 0;
+    i < FOOD_COUNT;
+    i++
+) {
+
     addRandomFood();
+
 }
 
 
@@ -260,11 +423,6 @@ function spawnNewSnake() {
     let tries = 0;
 
 
-    /*
-       Try to spawn away from
-       the player's snake.
-    */
-
     do {
 
         x =
@@ -272,30 +430,45 @@ function spawnNewSnake() {
             Math.random() *
             (WIDE - 80);
 
+
         y =
             40 +
             Math.random() *
             (HIGH - 80);
 
+
         tries++;
 
-    } while (
+    }
+    while (
+
         Math.hypot(
-            x - player.points[0].x,
-            y - player.points[0].y
-        ) < 150 &&
+
+            x -
+            player.points[0].x,
+
+            y -
+            player.points[0].y
+
+        ) < 150
+
+        &&
+
         tries < 30
+
     );
 
 
     /*
-       NEW SNAKES ARE SMALL
-       Only 5–8 body parts.
+        Small snakes:
+        5 to 8 segments.
     */
 
     const length =
         5 +
-        Math.floor(Math.random() * 4);
+        Math.floor(
+            Math.random() * 4
+        );
 
 
     const color =
@@ -332,14 +505,19 @@ function spawnNewSnake() {
 
 
 /* =========================
-   COUNT LIVING AI SNAKES
+   COUNT AI
 ========================= */
 
 function countAliveAI() {
 
     let count = 0;
 
-    for (let i = 1; i < snakes.length; i++) {
+
+    for (
+        let i = 1;
+        i < snakes.length;
+        i++
+    ) {
 
         if (snakes[i].alive) {
             count++;
@@ -347,13 +525,14 @@ function countAliveAI() {
 
     }
 
+
     return count;
 
 }
 
 
 /* =========================
-   KEEP SPAWNING SNAKES
+   MAINTAIN AI
 ========================= */
 
 function maintainSnakes() {
@@ -361,23 +540,27 @@ function maintainSnakes() {
     spawnTimer--;
 
 
-    /*
-       If there aren't enough snakes,
-       create one immediately.
-    */
-
     if (
-        countAliveAI() < MAX_AI_SNAKES &&
+
+        countAliveAI()
+        < MAX_AI_SNAKES
+
+        &&
+
         spawnTimer <= 0
+
     ) {
 
         spawnNewSnake();
 
+
         /*
-           Don't spawn all of them at once.
+            New snakes don't appear
+            all at the exact same time.
         */
 
-        spawnTimer = SPAWN_TIME;
+        spawnTimer =
+            SPAWN_TIME;
 
     }
 
@@ -401,8 +584,11 @@ function movePlayer() {
 
     const distance =
         Math.hypot(
+
             head.x - mouse.x,
+
             head.y - mouse.y
+
         );
 
 
@@ -418,19 +604,32 @@ function movePlayer() {
         );
 
 
+    /*
+        Higher turn value =
+        more responsive controls.
+    */
+
     player.angles[0] =
         limit(
+
             wanted,
+
             player.angles[0],
+
             PLAYER_TURN
+
         );
 
 
     player.points[0] =
         walk(
+
             head,
+
             player.angles[0],
+
             PLAYER_SPEED
+
         );
 
 
@@ -453,24 +652,35 @@ function moveBody(snake) {
 
         const wanted =
             angleTo(
+
                 snake.points[i],
+
                 snake.points[i - 1]
+
             );
 
 
         snake.angles[i] =
             limit(
+
                 wanted,
+
                 snake.angles[i - 1],
+
                 BEND
+
             );
 
 
         snake.points[i] =
             walk(
+
                 snake.points[i - 1],
+
                 snake.angles[i],
+
                 -GAP
+
             );
 
     }
@@ -496,7 +706,9 @@ function moveAI(snake) {
     snake.changeTimer--;
 
 
-    if (snake.changeTimer <= 0) {
+    if (
+        snake.changeTimer <= 0
+    ) {
 
         snake.changeTimer =
             30 +
@@ -504,21 +716,28 @@ function moveAI(snake) {
 
 
         if (
-            foods.length > 0 &&
+            foods.length > 0
+            &&
             Math.random() < 0.7
         ) {
 
             let closest = null;
+
             let closestDistance =
                 Infinity;
 
 
-            for (const food of foods) {
+            for (
+                const food of foods
+            ) {
 
                 const distance =
                     Math.hypot(
+
                         food.x - head.x,
+
                         food.y - head.y
+
                     );
 
 
@@ -547,56 +766,80 @@ function moveAI(snake) {
 
             }
 
-        } else {
+        }
+        else {
 
             snake.targetAngle +=
-                (Math.random() - 0.5) *
-                1.5;
+
+                (Math.random() - 0.5)
+                * 1.5;
 
         }
 
     }
 
 
-    /*
-       Stay away from edges.
-    */
-
     const margin = 60;
 
 
     if (head.x < margin) {
+
         snake.targetAngle = 0;
+
     }
 
-    if (head.x > WIDE - margin) {
-        snake.targetAngle = Math.PI;
+
+    if (
+        head.x >
+        WIDE - margin
+    ) {
+
+        snake.targetAngle =
+            Math.PI;
+
     }
+
 
     if (head.y < margin) {
+
         snake.targetAngle =
             Math.PI / 2;
+
     }
 
-    if (head.y > HIGH - margin) {
+
+    if (
+        head.y >
+        HIGH - margin
+    ) {
+
         snake.targetAngle =
             -Math.PI / 2;
+
     }
 
 
     snake.angles[0] =
         limit(
+
             snake.targetAngle,
+
             snake.angles[0],
+
             0.12
+
         );
 
 
     snake.points[0] =
         walk(
+
             head,
+
             snake.angles[0],
+
             2.4
+
         );
 
 
@@ -606,7 +849,7 @@ function moveAI(snake) {
 
 
 /* =========================
-   FOOD COLLISION
+   FOOD
 ========================= */
 
 function checkFood(snake) {
@@ -632,12 +875,17 @@ function checkFood(snake) {
 
         const distance =
             Math.hypot(
+
                 head.x - food.x,
+
                 head.y - food.y
+
             );
 
 
-        if (distance < 20) {
+        if (
+            distance < 20
+        ) {
 
             const last =
                 snake.points[
@@ -646,19 +894,24 @@ function checkFood(snake) {
 
 
             /*
-               Add one body segment.
+                Add one segment.
             */
 
             snake.points.push({
+
                 x: last.x,
+
                 y: last.y
+
             });
 
 
             snake.angles.push(
+
                 snake.angles[
                     snake.angles.length - 1
                 ]
+
             );
 
 
@@ -689,7 +942,7 @@ function killSnake(snake) {
 
 
     /*
-       Dead snake becomes food.
+        Dead snake becomes food.
     */
 
     for (
@@ -703,10 +956,15 @@ function killSnake(snake) {
 
 
         foods.push(
+
             createFood(
+
                 point.x,
+
                 point.y
+
             )
+
         );
 
     }
@@ -756,14 +1014,20 @@ function checkPlayerCollision() {
 
             const distance =
                 Math.hypot(
+
                     head.x - body.x,
+
                     head.y - body.y
+
                 );
 
 
-            if (distance < 15) {
+            if (
+                distance < 15
+            ) {
 
-                player.alive = false;
+                player.alive =
+                    false;
 
                 return;
 
@@ -802,7 +1066,7 @@ function checkAICollisions() {
 
 
         /*
-           AI hits player
+            AI hits player.
         */
 
         for (
@@ -817,12 +1081,17 @@ function checkAICollisions() {
 
             const distance =
                 Math.hypot(
+
                     head.x - body.x,
+
                     head.y - body.y
+
                 );
 
 
-            if (distance < 14) {
+            if (
+                distance < 14
+            ) {
 
                 killSnake(ai);
 
@@ -839,7 +1108,7 @@ function checkAICollisions() {
 
 
         /*
-           AI can hit another AI
+            AI hits another AI.
         */
 
         for (
@@ -848,7 +1117,9 @@ function checkAICollisions() {
             otherIndex++
         ) {
 
-            if (otherIndex === s) {
+            if (
+                otherIndex === s
+            ) {
                 continue;
             }
 
@@ -874,12 +1145,17 @@ function checkAICollisions() {
 
                 const distance =
                     Math.hypot(
+
                         head.x - body.x,
+
                         head.y - body.y
+
                     );
 
 
-                if (distance < 13) {
+                if (
+                    distance < 13
+                ) {
 
                     killSnake(ai);
 
@@ -907,20 +1183,31 @@ function checkAICollisions() {
 
 function drawFood() {
 
-    for (const food of foods) {
+    for (
+        const food of foods
+    ) {
 
         ctx.beginPath();
 
+
         ctx.arc(
+
             food.x,
+
             food.y,
+
             food.radius,
+
             0,
+
             Math.PI * 2
+
         );
+
 
         ctx.fillStyle =
             "#90ee90";
+
 
         ctx.fill();
 
@@ -941,6 +1228,7 @@ function drawSnake(snake) {
 
 
     let left = [];
+
     let right = [];
 
 
@@ -953,29 +1241,44 @@ function drawSnake(snake) {
         const width =
             WIDTHS[
                 Math.min(
+
                     i,
+
                     WIDTHS.length - 1
+
                 )
             ];
 
 
         left.push(
+
             walk(
+
                 snake.points[i],
+
                 snake.angles[i] -
                     QUARTER,
+
                 width
+
             )
+
         );
 
 
         right.push(
+
             walk(
+
                 snake.points[i],
+
                 snake.angles[i] +
                     QUARTER,
+
                 width
+
             )
+
         );
 
     }
@@ -986,22 +1289,33 @@ function drawSnake(snake) {
 
     const nose =
         walk(
+
             snake.points[0],
+
             snake.angles[0],
+
             WIDTHS[0]
+
         );
 
 
     const outline =
-        [nose, ...left, ...right];
+        [
+            nose,
+            ...left,
+            ...right
+        ];
 
 
     ctx.beginPath();
 
 
     ctx.moveTo(
+
         outline[0].x,
+
         outline[0].y
+
     );
 
 
@@ -1012,8 +1326,11 @@ function drawSnake(snake) {
     ) {
 
         ctx.lineTo(
+
             outline[i].x,
+
             outline[i].y
+
         );
 
     }
@@ -1025,19 +1342,24 @@ function drawSnake(snake) {
     ctx.fillStyle =
         snake.color;
 
+
     ctx.strokeStyle =
         "white";
 
+
     ctx.lineWidth =
-        snake.isPlayer ? 3 : 2;
+        snake.isPlayer
+            ? 3
+            : 2;
 
 
     ctx.fill();
+
     ctx.stroke();
 
 
     /*
-       Player eyes
+        Player eyes.
     */
 
     if (snake.isPlayer) {
@@ -1045,25 +1367,38 @@ function drawSnake(snake) {
         const head =
             snake.points[0];
 
+
         const facing =
             snake.angles[0];
 
 
         drawEye(
+
             walk(
+
                 head,
+
                 facing - 1.2,
+
                 9
+
             )
+
         );
 
 
         drawEye(
+
             walk(
+
                 head,
+
                 facing + 1.2,
+
                 9
+
             )
+
         );
 
     }
@@ -1072,23 +1407,32 @@ function drawSnake(snake) {
 
 
 /* =========================
-   DRAW EYES
+   EYES
 ========================= */
 
 function drawEye(position) {
 
     ctx.beginPath();
 
+
     ctx.arc(
+
         position.x,
+
         position.y,
+
         3,
+
         0,
+
         Math.PI * 2
+
     );
+
 
     ctx.fillStyle =
         "white";
+
 
     ctx.fill();
 
@@ -1111,27 +1455,38 @@ function drawGameOver() {
 
 
     ctx.fillRect(
+
         0,
+
         0,
+
         WIDE,
+
         HIGH
+
     );
 
 
     ctx.fillStyle =
         "white";
 
+
     ctx.font =
         "bold 48px Arial";
+
 
     ctx.textAlign =
         "center";
 
 
     ctx.fillText(
+
         "GAME OVER",
+
         WIDE / 2,
+
         HIGH / 2
+
     );
 
 
@@ -1140,9 +1495,13 @@ function drawGameOver() {
 
 
     ctx.fillText(
+
         "Refresh the page to play again",
+
         WIDE / 2,
+
         HIGH / 2 + 45
+
     );
 
 }
@@ -1155,15 +1514,28 @@ function drawGameOver() {
 function gameLoop() {
 
     ctx.clearRect(
+
         0,
+
         0,
+
         WIDE,
+
         HIGH
+
     );
 
 
+    /*
+        Player
+    */
+
     movePlayer();
 
+
+    /*
+        AI snakes
+    */
 
     for (
         let i = 1;
@@ -1179,12 +1551,16 @@ function gameLoop() {
 
 
     /*
-       Continuously create
-       new small snakes.
+        Keep spawning
+        new small snakes.
     */
 
     maintainSnakes();
 
+
+    /*
+        Food
+    */
 
     checkFood(player);
 
@@ -1202,15 +1578,25 @@ function gameLoop() {
     }
 
 
+    /*
+        Collisions
+    */
+
     checkPlayerCollision();
 
     checkAICollisions();
 
 
+    /*
+        Draw
+    */
+
     drawFood();
 
 
-    for (const snake of snakes) {
+    for (
+        const snake of snakes
+    ) {
 
         drawSnake(snake);
 
@@ -1226,6 +1612,10 @@ function gameLoop() {
 
 }
 
+
+/* =========================
+   START
+========================= */
 
 gameLoop();
 
