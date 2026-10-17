@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="认识粉红小猪佩奇、她的家人和朋友，一起开启快乐的小小冒险。">
+  <title>佩奇的快乐小世界</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #493b47;
+      --pink: #ed7897;
+      --rose: #ffe5ec;
+      --yellow: #ffe79a;
+      --green: #d9efcf;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      font-family: "Avenir Next", Avenir, "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: linear-gradient(180deg, #fff8fa 0, #fff 58%);
+      line-height: 1.65;
+    }
+    a { color: inherit; }
+    .wrap { width: min(960px, calc(100% - 36px)); margin: auto; }
+    header { padding: 22px 0; }
+    nav { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+    .brand { font-weight: 800; color: #bd4f70; text-decoration: none; }
+    .back { text-decoration: none; font-size: .95rem; }
+    .hero {
+      position: relative;
+      overflow: hidden;
+      padding: clamp(36px, 8vw, 76px);
+      border-radius: 30px;
+      background: var(--rose);
+      text-align: center;
+    }
+    .hero::before, .hero::after { content: "✿"; position: absolute; color: #fff; opacity: .8; font-size: 42px; }
+    .hero::before { left: 8%; top: 15%; }
+    .hero::after { right: 9%; bottom: 12%; }
+    .eyebrow { margin: 0 0 8px; color: #a84a69; font-weight: 700; letter-spacing: .08em; }
+    h1 { margin: 0; color: #b84769; font-size: clamp(2.2rem, 7vw, 4rem); line-height: 1.15; }
+    .hero p:last-child { max-width: 570px; margin: 18px auto 0; font-size: 1.1rem; }
+    .pig { width: 116px; height: 116px; margin: 0 auto 18px; display: grid; place-items: center; border: 5px solid #d95c7f; border-radius: 48% 48% 45% 45%; background: #f58ca6; font-size: 62px; box-shadow: 0 7px 0 #d95c7f; }
+    section { padding: 42px 0 12px; }
+    h2 { margin: 0 0 18px; font-size: 1.7rem; }
+    .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .card { padding: 22px; border-radius: 20px; background: #fff; box-shadow: 0 5px 20px #563d4b12; }
+    .card:nth-child(1) { border-top: 5px solid var(--pink); }
+    .card:nth-child(2) { border-top: 5px solid #83bf72; }
+    .card:nth-child(3) { border-top: 5px solid #f1c74e; }
+    .card h3 { margin: 0 0 7px; }
+    .card p { margin: 0; }
+    .quote { margin: 30px 0 48px; padding: 22px; border-radius: 18px; background: var(--yellow); text-align: center; font-weight: 700; }
+    footer { padding: 20px 0 32px; color: #756875; text-align: center; font-size: .9rem; }
+    @media (max-width: 650px) { .cards { grid-template-columns: 1fr; } .hero { border-radius: 22px; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <nav aria-label="主导航">
+        <a class="brand" href="index.html">Eva 的小网站</a>
+        <a class="back" href="index.html">← 返回首页</a>
+      </nav>
+    </header>
+    <main>
+      <section class="hero" aria-labelledby="title">
+        <div class="pig" role="img" aria-label="粉红小猪图案">🐷</div>
+        <p class="eyebrow">欢迎来到快乐小世界</p>
+        <h1 id="title">你好，佩奇！</h1>
+        <p>佩奇是一只活泼又好奇的小猪。她喜欢和家人、朋友一起玩耍，在日常生活中发现新鲜有趣的事情。</p>
+      </section>
+      <section aria-labelledby="friends">
+        <h2 id="friends">佩奇的家人和朋友</h2>
+        <div class="cards">
+          <article class="card">
+            <h3>乔治</h3>
+            <p>佩奇的弟弟，最喜欢他的恐龙玩具“恐龙先生”。</p>
+          </article>
+          <article class="card">
+            <h3>猪妈妈和猪爸爸</h3>
+            <p>一家人总会互相帮助，也常常一起分享快乐时光。</p>
+          </article>
+          <article class="card">
+            <h3>好朋友们</h3>
+            <p>佩奇和朋友们一起上学、玩游戏，也学着关心彼此。</p>
+          </article>
+        </div>
+      </section>
+      <p class="quote">每一天都可以有新的发现，也可以一起笑出声！</p>
+    </main>
+    <footer>这是一个粉丝介绍小页面。佩奇及相关角色属于其各自权利人。</footer>
+  </div>
+</body>
+</html>
